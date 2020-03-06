@@ -4,7 +4,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
-from typing import re
+import typing
 
 
 def is_subsequence_of(subseq, seq):
@@ -127,11 +127,11 @@ class FM:
         Check that each of the strings is present in `self.output`. This
         checks substrings of the output.
 
-        The elements of `string` can also be a `re.Pattern` instances.
+        The elements of `string` can also be a regex pattern instances.
         """
 
         for i in strings:
-            if isinstance(i, re.Pattern):
+            if isinstance(i, typing.re.Pattern):
                 assert i.search(self.output)
             else:
                 assert i in self.output
@@ -141,11 +141,11 @@ class FM:
         Check that each of the strings is not present in `self.output`. This
         checks substrings of the output.
 
-        The elements of `string` can also be a `re.Pattern` instances.
+        The elements of `string` can also be a regex pattern instances.
         """
 
         for i in strings:
-            if isinstance(i, re.Pattern):
+            if isinstance(i, typing.re.Pattern):
                 assert not i.search(self.output)
             else:
                 assert i not in self.output
