@@ -31,7 +31,6 @@ def gather_duplicates(iter):
 
 class FM:
     def __init__(self, root_dir):
-        # TODO: The root directory where the index is accessed and the default cwd are coupled. The cwd should probably just always be relative to the temporary directory. idk.
         # The root directory of the repository used by this instance when
         # running commands. Can be changed when necessary.
         self.root_dir = root_dir
