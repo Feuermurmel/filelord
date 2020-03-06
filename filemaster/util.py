@@ -1,6 +1,7 @@
 import contextlib
 import hashlib
 import io
+import os
 import pathlib
 import sys
 import typing
@@ -153,6 +154,21 @@ def _log_message_fn(message):
 
 def log(message, *args):
     _log_message_fn(message.format(*args))
+
+
+# String containing all the path separator characters used on the current
+# platform.
+_path_separators = os.path.sep + (os.path.altsep or '')
+
+
+class PathWithSlash:
+    """
+    Type used in place of `pathlib.Path` in argument parsers where trailing
+    slashes are significant.
+    """
+    def __init__(self, path_str: str):
+        self.path = pathlib.Path(path_str)
+        self.trailing_slash = path_str[-1:] in _path_separators
 
 
 class UserError(Exception):
