@@ -2,7 +2,8 @@ import collections
 import typing
 
 from filemaster.store import Store, namedtuple_encode, pathlib_path_encode
-from filemaster.util import log, format_size, file_digest, iter_regular_files
+from filemaster.util import log, format_size, file_digest, iter_regular_files, \
+    is_descendant_of
 
 
 """
@@ -10,17 +11,9 @@ Represents an entry in a file cache. The entry stores the file's absolute
 path, its ctime and its hash. The ctime is used to detect when a file has 
 been modified.
 """
-CacheEntry = collections.namedtuple('CacheEntry', 'path ctime hash')
+CachedFile = collections.namedtuple('CacheEntry', 'path ctime hash')
 
-_cache_entry_encode = namedtuple_encode(CacheEntry, path=pathlib_path_encode)
-
-
-# TODO: Remove this type and export absolute paths from get_cached_files()
-"""
-Used to export data from the file cache. Only contains the path and hash of an
-entry. The path is relative to the root directory of the cache.
-"""
-CachedFile = collections.namedtuple('CachedFile', 'path hash')
+_cached_file_encode = namedtuple_encode(CachedFile, path=pathlib_path_encode)
 
 
 # TODO: Great idea here! While indexing, to not lose any work when the user cancels or we crash during indexing, write a line some temporary file, which contains the information for already-scanned paths and which can be replayed before the next scan begins.
@@ -34,7 +27,7 @@ class FileCache:
         self._root_path = root_path
         self._filter_fn = filter_fn
 
-        self._store = Store(path=self._store_path, encode=_cache_entry_encode)
+        self._store = Store(path=self._store_path, encode=_cached_file_encode)
 
     def _get_current_ctime(self):
         """
@@ -94,7 +87,7 @@ class FileCache:
                     log('Hashing {} ({}) ...', path, format_size(size))
 
                 hash = file_digest(path, progress_fn=data_read_progress_fn)
-                entry = CacheEntry(path, ctime, hash)
+                entry = CachedFile(path, ctime, hash)
 
             new_entries.append(entry)
             file_checked_progress_fn()
@@ -106,17 +99,10 @@ class FileCache:
     def get_cached_files(self) -> typing.List[CachedFile]:
         """
         Return the current list of cached files. This only contains files
-        inside the current root, even when root was changed and the index not
-        updated.
+        inside the current root, even when the root was moved without
+        updating the cache.
         """
 
-        def iter_entries():
-            for i in self._store:
-                try:
-                    path = i.path.relative_to(self._root_path)
-                except ValueError:
-                    pass
-                else:
-                    yield CachedFile(path, i.hash)
-
-        return list(iter_entries())
+        return [
+            i for i in self._store
+            if is_descendant_of(i.path, self._root_path)]

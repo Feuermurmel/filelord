@@ -86,17 +86,22 @@ class Repository:
         self.root_dir = root_dir
         self.aggregated_files = aggregated_files
 
-    # TODO: Not necessary to be in Repository once we use absolute paths in CachedFile.
-    def get_matched_files(self, file_set):
-        def iter_matches():
-            for i in self.aggregated_files:
-                for j in i.cached_files:
-                    path = self.root_dir / j.path
+    def get_matched_files(self, file_set) -> typing.List[MatchedFile]:
+        """
+        Match all aggregated files of this repository with the specified file
+        set.
 
-                    for k in file_set.matched_roots(path):
-                        yield MatchedFile(path, k, i)
+        Returns a `MatchedFile` instance for each combination of a root in
+        the file set and an aggregated file where the aggregated file's path
+        is below the root. The returned list is sported by the paths of the
+        matched files.
+        """
 
-        return sorted(iter_matches())
+        return sorted(
+            MatchedFile(c.path, m, a)
+            for a in self.aggregated_files
+            for c in a.cached_files
+            for m in file_set.matched_roots(c.path))
 
     def create_file_set(self, paths):
         """
@@ -285,18 +290,15 @@ def list_files(repo: Repository, file_set: FileSet, summary_only):
             if intended_path is not None:
                 intended_path = repo.root_dir / intended_path
 
-            print(os.path.relpath(i.path), flush=False)
+            print(os.path.relpath(i.path))
 
             # Only display the intended path, if the file is not currently at
             # its intended path.
-            if intended_path != i.path:
-                if intended_path is None:
-                    intended_path_str = '?'
-                else:
-                    intended_path_str = \
-                        os.path.relpath(repo.root_dir / intended_path)
+            if intended_path is None:
+                print('  => ?')
+            elif intended_path != i.path:
+                print('  =>', os.path.relpath(repo.root_dir / intended_path))
 
-                print('  =>', intended_path_str)
 
         if items:
             # An empty line before the summary, unless we got no files.

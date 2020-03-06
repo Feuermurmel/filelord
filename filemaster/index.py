@@ -1,18 +1,23 @@
 import collections
 import typing
 
+from filemaster.cache import CachedFile
 from filemaster.store import namedtuple_encode, union_with_none_encode, \
     pathlib_path_encode, list_encode, Store
 
 
-# TODO: Make seen_paths absolute paths. This will allow the file cache to export absolute paths as well.
 """
 Represents an entry in the index.
 
-`hash` is the hash of the files content. `intended_path` is a path by the 
-user where the files should eventually be moved. This is initially set to 
-`None`. `seen_paths` is a list of paths at which a file with this hash has 
-been seen in the past. All paths are stored relative to the root directory.
+
+:param hash:
+    A hash of the file's content.
+:param intended_path:
+    A path relative to the repository's root where the file should eventually 
+    be moved. This is set by the user and is initially set to `None`.
+:param seen_paths: 
+    A list of absolute paths at which a file with this hash has been seen in 
+    the past. New paths are appended to the end of the list.
 """
 IndexEntry = \
     collections.namedtuple('IndexEntry', 'hash intended_path seen_paths')
@@ -47,7 +52,7 @@ class FileIndex:
     def __init__(self, *, store_path):
         self._store = Store(path=store_path, encode=_index_entry_encode)
 
-    def aggregate_files(self, cached_files) -> typing.List[AggregatedFile]:
+    def aggregate_files(self, cached_files: typing.List[CachedFile]) -> typing.List[AggregatedFile]:
         """
         Return the content of the index aggregated with the content of the
         cache.
