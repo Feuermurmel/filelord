@@ -1,3 +1,6 @@
+import re
+
+
 def test_intended_path_is_reset(files, fm):
     files['file1'] = 'a'
     files['dir1/file2'] = 'b'
@@ -34,6 +37,21 @@ def test_missing_file_not_reset(files, fm):
     fm.index.check_intended_path('a', 'file1')
 
 
+def test_reset_all(files, fm):
+    files['file1'] = 'a'
+    files['dir1/file2'] = 'b'
+
+    # Use -a form a subdirectory. All files have their intended path set.
+    fm('reset -s -a', cwd='dir1')
+    fm.index.check_intended_path('a', 'file1')
+    fm.index.check_intended_path('b', 'dir1/file2')
+
+    # Same without -s. All files have their intended path reset.
+    fm('reset -a', cwd='dir1')
+    fm.index.check_intended_path('a', None)
+    fm.index.check_intended_path('b', None)
+
+
 def test_set_intended_path_to_current_path(files, fm):
     files['file1'] = 'a'
     files['dir1/file2'] = 'b'
@@ -66,29 +84,32 @@ def test_reset_missing(files, fm):
     fm.index.check_intended_path('b', 'file2')
 
 
-def test_missing_cache_set_paths_combined(fm):
-    # A bunch of illegal combinations of flags.
-    fm.expect_error('cannot be used with')
-    fm('reset --missing foo')
-    fm.expect_error('cannot be used with')
-    fm('reset --missing -s')
-    fm.expect_error('cannot be used with')
-    fm('reset --cache foo')
-    fm.expect_error('cannot be used with')
-    fm('reset --cache --missing')
-    fm.expect_error('cannot be used with')
-    fm('reset --cache -s')
+def test_illegal_argument_combinations(fm):
+    def check_case(args):
+        # Checking for one of many expected error messages. The parsing
+        # validity checking is largely done by argparse, so the error
+        # messages will be correct. This should just check that the argument
+        # parser is correctly set up.
+        fm.expect_error(re.compile('one of the arguments .* required|not allowed with argument|requires one of'))
+        fm(args)
+
+    check_case('reset --missing foo')
+    check_case('reset --missing -a')
+    check_case('reset --missing -s')
+    check_case('reset --cache foo')
+    check_case('reset --cache -a')
+    check_case('reset --cache --missing')
+    check_case('reset --cache -s')
 
 
 def test_paths_required(fm):
     # Paths do not default to the current directory.
-    fm.expect_error('--cache, --missing or paths is required')
+    fm.expect_error(re.compile('one of the arguments .* required'))
     fm('reset')
 
     # Same with -s.
-    fm.expect_error('--cache, --missing or paths is required')
+    fm.expect_error(re.compile('one of the arguments .* required'))
     fm('reset -s')
-
 
 
 def test_clear_cache(files, fm):

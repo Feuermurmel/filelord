@@ -139,7 +139,23 @@ def parse_args():
         'reset',
         help='Reset the intended path property of files.')
 
-    reset_parser_ex_group = reset_parser.add_mutually_exclusive_group()
+    # Mutually exclusive group for --cache, --missing, --all and paths.
+    # Technically these two features are orthogonal and could be combined,
+    # but it could lead to confusion e.g. because --missing clears _all_
+    # missing files and is not restricted by the specified paths.
+    reset_parser_ex_group = \
+        reset_parser.add_mutually_exclusive_group(required=True)
+
+    reset_parser_ex_group.add_argument(
+         '--cache',
+         help='Clear the file cache instead of resetting intended paths.',
+         action='store_true')
+
+    reset_parser_ex_group.add_argument(
+        '--missing',
+        help='Remove the intended path from files which can\'t be found in '
+             'the directory tree anymore.',
+        action='store_true')
 
     reset_parser_ex_group.add_argument(
         '-a',
@@ -154,22 +170,11 @@ def parse_args():
              'their current paths.',
         action='store_true')
 
-    reset_parser.add_argument(
-        '--missing',
-        help='Remove the intended path from files which can\'t be found in '
-             'the directory tree anymore.',
-        action='store_true')
-
-    reset_parser.add_argument(
-         '--cache',
-         help='Clear the file cache instead of resetting intended paths.',
-         action='store_true')
-
-    # TODO: Maybe require a path to prevent accidentally removing a lot of paths.
+    # Paths does not default to the current directory to prevent accidentally
+    # resetting the intended path for a large number of files.
     reset_parser_ex_group.add_argument(
         'paths',
-        help='Files or directories from which to remove the intended path. '
-             'Defaults to the current directory',
+        help='Files or directories from which to remove the intended path.',
         nargs='*',
         type=pathlib.Path,
         default=[])
@@ -245,7 +250,7 @@ def parse_args():
 
     # TODO: Add an option which allows multiple identical copies to be merged (deleting all but one copy).
     # TODO: What happens when multiple files have the same intended path?
-    # TODO: Do we need an option which allows overwriting already-existing files at the indended path of another file? Do we want to rename those files? Do we update the intended path of those files, if they were already at their intended path?
+    # TODO: Do we need an option which allows overwriting already-existing files at the intended path of another file? Do we want to rename those files? Do we update the intended path of those files, if they were already at their intended path?
     # TODO: Add a dry run option.
 
     apply_parser_ex_group.add_argument(
@@ -259,27 +264,8 @@ def parse_args():
     args = parser.parse_args()
 
     if args.command == 'reset':
-        if args.cache:
-            if args.missing or args.set_current or args.paths:
-                # TODO: Look into ArgumentParser.add_mutually_exclusive_group() to replace this ceremony.
-                parser.error(
-                    '--cache cannot be used with --missing, --set-current or '
-                    'any paths.')
-        elif args.missing:
-            if args.set_current or args.paths:
-                # Technically these two features are orthogonal and could be
-                # combined, but if could lead to confusion because --missing
-                # clears _all_ missing files and is not restricted by the
-                # specified paths.
-                parser.error(
-                    '--missing cannot be used with --set-current or any '
-                    'paths.')
-        else:
-            # Paths does not default to the current directory to prevent
-            # accidentally resetting the intended path for a large number of
-            # files.
-            if not args.paths and not args.missing:
-                parser.error('One of --cache, --missing or paths is required.')
+        if args.set_current and not (args.all or args.paths):
+            parser.error('--set-current requires one of --all or paths.')
 
     return args
 
