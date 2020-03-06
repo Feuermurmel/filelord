@@ -1,3 +1,4 @@
+import contextlib
 import hashlib
 import json
 import pathlib
@@ -5,6 +6,8 @@ import shutil
 import subprocess
 import sys
 import typing
+
+import filemaster.cli
 
 
 def is_subsequence_of(subseq, seq):
@@ -29,11 +32,86 @@ def gather_duplicates(iter):
     return list(iter_duplicates())
 
 
+@contextlib.contextmanager
+def local_capsys_capture(capsys):
+    """
+    Return a context manager which will isolate the output captured by the
+    capsys fixture while the context is active.
+
+    While the context is active, the output buffers capsys fixture will not
+    contain any output from before the context was entered. When the context
+    is left, that output will be added back to the buffers.
+    """
+
+    old_output = capsys.readouterr()
+
+    try:
+        yield
+    finally:
+        # Remove any output added to the buffers while the context was active
+        # here, so that we can add the old output in front of the new output.
+        new_output = capsys.readouterr()
+
+        sys.stdout.write(old_output.out + new_output.out)
+        sys.stderr.write(old_output.err + new_output.err)
+
+
+class FakeSubprocess:
+    def __init__(self, capsys, monkeypatch):
+        self._capsys = capsys
+        self._monkeypatch = monkeypatch
+
+    def run(self, args, *, cwd, entry_point):
+        """
+        Replacement for `subprocess.run()` which, instead of creating a
+        subprocess, calls the specified function after setting up the
+        environment as if it was called from the setuptools entry point.
+
+        This behaves implicitly as if `stdout=subprocess.PIPE` and
+        `stderr=subprocess.PIPE` had been specified.
+        """
+
+        # Temporarily remove output from the capsys fixture so that we
+        # can later only keep the part written during this command invocation.
+        with local_capsys_capture(self._capsys):
+            try:
+                with self._monkeypatch.context() as m:
+                    # Setup call environment.
+                    m.chdir(cwd)
+                    m.setattr('sys.argv', args)
+
+                    entry_point()
+            except SystemExit as e:
+                returncode = e.code
+            except Exception:
+                # Print the stack trace so it gets captured in the output
+                # returned in the `CompletedProcess`.
+                sys.excepthook(*sys.exc_info())
+
+                # Python uses an exit code of 1 for unhandled exceptions.
+                returncode = 1
+            else:
+                returncode = 0
+
+            # The output produced by the invocation.
+            output = self._capsys.readouterr()
+
+        # TODO: We want to use capsysbinary here instead of capsys.
+        # see: https://github.com/pytest-dev/pytest/issues/6871
+        out = output.out.encode()
+        err = output.err.encode()
+
+        return subprocess.CompletedProcess(args, returncode, out, err)
+
+
 class FM:
-    def __init__(self, root_dir):
+    def __init__(self, root_dir, fake_subprocess):
         # The root directory of the repository used by this instance when
         # running commands. Can be changed when necessary.
         self.root_dir = root_dir
+
+        # Other fixture this fixture depends on.
+        self._fake_subprocess = fake_subprocess
 
         # Set to a string, which indicates that the next use of __call__ is
         # expected to fail and produce the error message stored here.
@@ -49,7 +127,6 @@ class FM:
         # command is run.
         self._cached_index = None
 
-    # TODO: Do not run a subprocess for this. We gain very little by this.
     def __call__(self, cmdline, cwd='.'):
         """
         Run the filemaster command with the specified arguments and in the
@@ -57,17 +134,17 @@ class FM:
         root of the repository.
         """
 
-        result = subprocess.run(
+        result = self._fake_subprocess.run(
             ['filemaster', *cmdline.split()],
             cwd=str(self.root_dir / cwd),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+            entry_point=filemaster.cli.entry_point)
 
         # Write the captured output to stdout so that we see it in the
         # pytest output when a test fails.
         sys.stdout.buffer.write(result.stdout)
+        sys.stderr.buffer.write(result.stderr)
 
-        self.output = result.stdout.decode()
+        self.output = result.stdout.decode() + result.stderr.decode()
         self.lines = self.output.splitlines()
 
         # Clear the FMIndex instance returned by self.index.

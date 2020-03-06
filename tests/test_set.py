@@ -40,11 +40,11 @@ def test_from_subdirectory(files, fm):
     fm.index.check_intended_path('a', 'dir1/file1')
 
 
-def test_intended_path_outside_of_root(files):
+def test_intended_path_outside_of_root(files, fake_subprocess):
     files['fm/file1'] = 'a'
 
     # Initialize the repository in its root directory.
-    fm = FM(files.root / 'fm')
+    fm = FM(files.root / 'fm', fake_subprocess)
     fm('init')
 
     # Setting an intended path outside the root should not work.

@@ -1,15 +1,26 @@
 import pytest
 
-from tests.testutil import FM, Files
+from tests.testutil import FM, Files, FakeSubprocess
 
 
 @pytest.fixture
-def fm(tmp_path):
+def fake_subprocess(capsys, monkeypatch):
+    """
+    Fixture which has a `run()` method which can be used as a replacement for
+    `subprocess.run()` and calls an entry point function instead of creating
+    a subprocess.
+    """
+
+    return FakeSubprocess(capsys, monkeypatch)
+
+
+@pytest.fixture
+def fm(tmp_path, fake_subprocess):
     """
     Provide an `FM` instance with an already initialized repository.
     """
 
-    fm = FM(tmp_path)
+    fm = FM(tmp_path, fake_subprocess)
     fm('init')
 
     return fm

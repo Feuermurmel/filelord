@@ -6,8 +6,8 @@ from tests.testutil import FM
 # Overwrite the global `fm` fixture with one which is not automatically
 # initialized.
 @pytest.fixture
-def fm(tmp_path):
-    return FM(tmp_path)
+def fm(tmp_path, fake_subprocess):
+    return FM(tmp_path, fake_subprocess)
 
 
 def test_init_empty(fm):
