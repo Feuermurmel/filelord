@@ -529,14 +529,21 @@ def list_files(repo: Repository, file_set: FileSet, summary_only):
         for i in items:
             intended_path = i.aggregated_file.index_entry.intended_path
 
-            if intended_path is None:
-                intended_path_str = '?'
-            else:
-                intended_path_str = \
-                    os.path.relpath(repo.root_dir / intended_path)
+            if intended_path is not None:
+                intended_path = repo.root_dir / intended_path
 
             print(os.path.relpath(i.path), flush=False)
-            print('  =>', intended_path_str)
+
+            # Only display the intended path, if the file is not currently at
+            # its intended path.
+            if intended_path != i.path:
+                if intended_path is None:
+                    intended_path_str = '?'
+                else:
+                    intended_path_str = \
+                        os.path.relpath(repo.root_dir / intended_path)
+
+                print('  =>', intended_path_str)
 
         if items:
             # An empty line before the summary, unless we got no files.

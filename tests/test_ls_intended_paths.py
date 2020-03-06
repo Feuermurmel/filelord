@@ -12,7 +12,7 @@ def test_file_with_intended_path(files, fm):
     # File is at intended path. No intended path should be displayed.
     fm('ls')
     fm.check_lines('file1')
-    fm.check_not_output('  => ?')
+    fm.check_not_output('=>')
 
     # Move the file.
     files['file1-new'] = files['file1']
