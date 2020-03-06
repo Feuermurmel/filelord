@@ -398,7 +398,26 @@ def remove_missing_files(repo):
         [i for i in repo.aggregated_files if i.cached_files]
 
 
-def apply_intended_paths(repo, file_set):
+def apply_intended_paths(repo, file_set, *, dry_run=False):
+    if dry_run:
+        def create_directory(path):
+            log('Would create directory: {}', os.path.relpath(path))
+
+        def move_file(source, dest):
+            log('Would move: {} -> {}', os.path.relpath(source), os.path.relpath(dest))
+    else:
+        def create_directory(path):
+            log('Creating directory: {}', os.path.relpath(path))
+            path.mkdir()
+
+        def move_file(source, dest):
+            log('Moving: {} -> {}', os.path.relpath(source), os.path.relpath(dest))
+
+            # Can't prevent race conditions. But this should catch logic bugs.
+            assert not dest.exists()
+
+            source.rename(dest)
+
     # Records changes to the file system before performing them so that we
     # can detect conflicts before doing anything.
     moved_files_by_created_directories = {}
@@ -480,15 +499,8 @@ def apply_intended_paths(repo, file_set):
 
     # Iterating over these sorted will give us the parents before the children.
     for path in sorted(moved_files_by_created_directories):
-        log('Creating directory: {}', os.path.relpath(path))
-        path.mkdir()
+        create_directory(path)
 
     # No problems detected. Create the directories and move the files.
     for destination, moved_file in moved_files_by_destination.items():
-        log('Moving: {} -> {}', os.path.relpath(moved_file.path), os.path.relpath(destination))
-
-        # Can't prevent race conditions. But this should catch bugs in the
-        # logic above.
-        assert not destination.exists()
-
-        moved_file.path.rename(destination)
+        move_file(moved_file.path, destination)

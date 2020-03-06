@@ -50,3 +50,21 @@ def test_apply_without_updating_cache(files, fm):
     files['file1'] = 'b'
     fm('-U apply')
     assert files['file2'] == 'b'
+
+
+def test_dry_run(files, fm):
+    files['file1'] = 'a'
+    fm('set file1 dir1/')
+
+    # Nothing should change but the changes should be printed.
+    fm('apply -n')
+    fm.check_consecutive_lines(
+        'Would create directory: dir1',
+        'Would move: file1 -> dir1/file1')
+    assert files['file1'] == 'a'
+    assert 'dir1' not in files
+
+    # Problems should still be detected.
+    files['dir1/file1'] = 'b'
+    fm.expect_error('Cannot move file1')
+    fm('apply -n')

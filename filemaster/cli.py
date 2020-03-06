@@ -204,6 +204,12 @@ def parse_args():
     apply_parser_ex_group = apply_parser.add_mutually_exclusive_group()
 
     apply_parser_ex_group.add_argument(
+        '-n',
+        '--dry-run',
+        help='Print the actions to take without applying them.',
+        action='store_true')
+
+    apply_parser_ex_group.add_argument(
         '-a',
         '--all',
         help='Apply to all files in the repository.',
@@ -317,12 +323,12 @@ def reset_command(update_cache, all, set_current, missing, cache, paths):
 #     pass
 
 
-def apply_command(update_cache, all, paths):
+def apply_command(update_cache, dry_run, all, paths):
     with with_repository(update_cache) as repo:
         if all:
             paths = [repo.root_dir]
 
-        apply_intended_paths(repo, repo.create_file_set(paths))
+        apply_intended_paths(repo, repo.create_file_set(paths), dry_run=dry_run)
 
 
 def main(command, **kwargs):
