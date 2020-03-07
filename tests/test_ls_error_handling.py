@@ -16,7 +16,7 @@ def test_path_outside_root(fm):
 
 
 def test_not_regular_file_or_dir(files, fm):
-    os.mkfifo(files.root / 'pipe')
+    os.mkfifo(str(files.root / 'pipe'))
 
     # A path to something that is not a regular file or directory should
     # result in an error.

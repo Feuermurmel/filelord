@@ -8,7 +8,8 @@ from filemaster.cache import FileCache
 from filemaster.index import AggregatedFile, FileIndex
 from filemaster.statusline import StatusLine, with_status_line
 from filemaster.tsv import write_tsv
-from filemaster.util import UserError, log, format_size, is_descendant_of
+from filemaster.util import UserError, log, format_size, is_descendant_of, \
+    relpath
 
 
 filemaster_dir_name = '.filemaster'
@@ -119,9 +120,10 @@ class Repository:
                         'Path is not a regular file or directory: {}',
                         i)
 
-                # Resolving the paths here basically means that we accept
-                # symlinks on the command line but ignore them when they are
-                # encountered when selecting files using this list.
+                # Resolving the path is necessary to get rid of any . and ..
+                # components. Resolving the paths here has the side-effect
+                # that we accept symlinks on the command line but otherwise
+                # ignore them when scanning the tree.
                 resolved_path = i.resolve()
 
                 if not is_descendant_of(resolved_path, self.root_dir):
@@ -207,7 +209,7 @@ def find_filemaster_root(root_dir: pathlib.Path = None):
     if root_dir is None:
         # Make sure to use an absolute path so that .parents list all the
         # parents.
-        current_dir = pathlib.Path().resolve()
+        current_dir = pathlib.Path.cwd()
 
         for root_dir in [current_dir, *current_dir.parents]:
             if (root_dir / filemaster_dir_name).is_dir():
@@ -228,9 +230,7 @@ def find_filemaster_root(root_dir: pathlib.Path = None):
         and (filemaster_dir / _file_index_store_name).is_file()
 
     if not files_exist:
-        raise UserError(
-            'Not a valid repository: {}',
-            os.path.relpath(filemaster_dir))
+        raise UserError('Not a valid repository: {}', relpath(filemaster_dir))
 
     # Now that we know that the directory exists, we can safely resolve it to
     # make it absolute and also get rid of any . and .. components.
@@ -288,14 +288,14 @@ def list_files(repo: Repository, file_set: FileSet, summary_only):
             if intended_path is not None:
                 intended_path = repo.root_dir / intended_path
 
-            print(os.path.relpath(i.path))
+            print(relpath(i.path))
 
             # Only display the intended path, if the file is not currently at
             # its intended path.
             if intended_path is None:
                 print('  => ?')
             elif intended_path != i.path:
-                print('  =>', os.path.relpath(repo.root_dir / intended_path))
+                print('  =>', relpath(repo.root_dir / intended_path))
 
 
         if items:
@@ -339,13 +339,13 @@ def set_intended_paths(repo, file_set, intended_path_fn):
             raise UserError(
                 'The same file is selected through multiple command line '
                 'arguments: {}',
-                os.path.relpath(path1))
+                relpath(path1))
         else:
             raise UserError(
                 'Cannot apply an intended path for identical files '
                 'simultaneously: {} and {}',
-                os.path.relpath(path1),
-                os.path.relpath(path2))
+                relpath(path1),
+                relpath(path2))
 
     # MatchedFiles instances by hash for files whose intended paths is being
     # set.
@@ -378,7 +378,7 @@ def set_intended_paths(repo, file_set, intended_path_fn):
                 raise UserError(
                     'Intended path is outside the repository\'s root '
                     'directory: {}',
-                    os.path.relpath(new_intended_path))
+                    relpath(new_intended_path))
 
         return aggregated_file._replace(
             index_entry=aggregated_file.index_entry._replace(
@@ -399,17 +399,17 @@ def remove_missing_files(repo):
 def apply_intended_paths(repo, file_set, *, dry_run=False):
     if dry_run:
         def create_directory(path):
-            log('Would create directory: {}', os.path.relpath(path))
+            log('Would create directory: {}', relpath(path))
 
         def move_file(source, dest):
-            log('Would move: {} -> {}', os.path.relpath(source), os.path.relpath(dest))
+            log('Would move: {} -> {}', relpath(source), relpath(dest))
     else:
         def create_directory(path):
-            log('Creating directory: {}', os.path.relpath(path))
+            log('Creating directory: {}', relpath(path))
             path.mkdir()
 
         def move_file(source, dest):
-            log('Moving: {} -> {}', os.path.relpath(source), os.path.relpath(dest))
+            log('Moving: {} -> {}', relpath(source), relpath(dest))
 
             # Can't prevent race conditions. But this should catch logic bugs.
             assert not dest.exists()
@@ -430,8 +430,8 @@ def apply_intended_paths(repo, file_set, *, dry_run=False):
                 raise UserError(
                     'Cannot create parent directory for {}, path already '
                     'exists: {}',
-                    os.path.relpath(matched_file.path),
-                    os.path.relpath(path))
+                    relpath(matched_file.path),
+                    relpath(path))
         elif path not in moved_files_by_created_directories:
             check_create_directory(path.parent, matched_file)
 
@@ -444,8 +444,8 @@ def apply_intended_paths(repo, file_set, *, dry_run=False):
         if destination.exists():
             raise UserError(
                 'Cannot move {}, path already exists: {}',
-                os.path.relpath(matched_file.path),
-                os.path.relpath(destination))
+                relpath(matched_file.path),
+                relpath(destination))
 
         # Check that all necessary parents can be created.
         check_create_directory(destination.parent, matched_file)
@@ -456,9 +456,9 @@ def apply_intended_paths(repo, file_set, *, dry_run=False):
         if other_matched_file is not None:
             raise UserError(
                 'Cannot move both {} and {} to same path: {}',
-                os.path.relpath(other_matched_file.path),
-                os.path.relpath(matched_file.path),
-                os.path.relpath(destination))
+                relpath(other_matched_file.path),
+                relpath(matched_file.path),
+                relpath(destination))
 
         moved_files_by_destination[destination] = matched_file
 
@@ -491,9 +491,9 @@ def apply_intended_paths(repo, file_set, *, dry_run=False):
             raise UserError(
                 'Cannot create parent directory for {}, {} will be moved to '
                 'that path: {}',
-                os.path.relpath(other_moved_file.path),
-                os.path.relpath(matched_file.path),
-                os.path.relpath(path))
+                relpath(other_moved_file.path),
+                relpath(matched_file.path),
+                relpath(path))
 
     # Iterating over these sorted will give us the parents before the children.
     for path in sorted(moved_files_by_created_directories):
