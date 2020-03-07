@@ -75,11 +75,15 @@ class _HashingFile(io.RawIOBase):
     it.
     """
 
-    def __init__(self, hash=hashlib.sha256):
-        self.hash = hash()
+    def __init__(self):
+        self._hash = hashlib.sha256()
 
     def write(self, b):
-        self.hash.update(b)
+        self._hash.update(b)
+
+    @property
+    def digest(self):
+        return 'sha256:' + self._hash.digest().hex()
 
 
 def file_digest(path: pathlib.Path, *, progress_fn: typing.Callable[[int], None]):
@@ -88,14 +92,14 @@ def file_digest(path: pathlib.Path, *, progress_fn: typing.Callable[[int], None]
     with path.open('rb') as file:
         copy_file(file, hashing_file, progress_fn=progress_fn)
 
-    return 'sha256:' + hashing_file.hash.digest().hex()
+    return hashing_file.digest
 
 
 def bytes_digest(data: bytes):
     hashing_file = _HashingFile()
     hashing_file.write(data)
 
-    return 'sha256:' + hashing_file.hash.digest().hex()
+    return hashing_file.digest
 
 
 def iter_regular_files(root: pathlib.Path, filter_fn: typing.Callable[[pathlib.Path], bool]):
@@ -142,6 +146,14 @@ def relpath(path):
     """
 
     return pathlib.Path(os.path.relpath(str(path)))
+
+
+def add_suffix(path: pathlib.Path, suffix: str):
+    """
+    Append the specified suffix to the name part of the path.
+    """
+
+    return path.parent / (path.name + suffix)
 
 
 @contextlib.contextmanager

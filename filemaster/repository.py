@@ -1,10 +1,9 @@
 import collections
 import contextlib
-import os
 import pathlib
 import typing
 
-from filemaster.cache import FileCache
+from filemaster.cache import FileCache, with_file_cache
 from filemaster.index import AggregatedFile, FileIndex
 from filemaster.statusline import StatusLine, with_status_line
 from filemaster.tsv import write_tsv
@@ -153,34 +152,31 @@ def with_repository(update_cache, *, root_dir=None, clear_cache=False):
     # Uses root_dir, if specified, otherwise searches for a repository.
     root_dir = find_filemaster_root(root_dir)
     filemaster_dir = root_dir / filemaster_dir_name
+    cache_store_path = filemaster_dir / _file_cache_store_name
 
-    cache = FileCache(
-        store_path=filemaster_dir / _file_cache_store_name,
-        root_path=root_dir,
-        filter_fn=file_filter_fn)
+    with with_file_cache(cache_store_path, root_dir, file_filter_fn) as cache:
+        index = FileIndex(
+            store_path=filemaster_dir / _file_index_store_name)
 
-    index = FileIndex(
-        store_path=filemaster_dir / _file_index_store_name)
+        if clear_cache:
+            # Produce different messages when the cache is cleared, depending on
+            # whether updating the cache is disabled or not.
+            if update_cache:
+                log('Recreating the file cache ...')
+            else:
+                log('Clearing the files cache ...')
 
-    if clear_cache:
-        # Produce different messages when the cache is cleared, depending on
-        # whether updating the cache is disabled or not.
+            cache.clear()
+
         if update_cache:
-            log('Recreating the file cache ...')
-        else:
-            log('Clearing the files cache ...')
+            update_cache_with_status(cache)
 
-        cache.clear()
+        aggregated_files = index.aggregate_files(cache.get_cached_files())
+        repo = Repository(root_dir, aggregated_files)
 
-    if update_cache:
-        update_cache_with_status(cache)
+        yield repo
 
-    aggregated_files = index.aggregate_files(cache.get_cached_files())
-    repo = Repository(root_dir, aggregated_files)
-
-    yield repo
-
-    index.set([i.index_entry for i in repo.aggregated_files])
+        index.set([i.index_entry for i in repo.aggregated_files])
 
 
 def file_filter_fn(x):

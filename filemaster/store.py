@@ -40,6 +40,7 @@ def namedtuple_encode(_type, **encodes_by_field):
 pathlib_path_encode = Encode(encode_fn=str, decode_fn=pathlib.Path)
 
 
+# TODO: It is certainly a stupid idea that the store itself exports a list interface, but it also creates some problems. E.g. <store-instance> + <some other list> does not work.
 class Store(collections.UserList):
     """
     Used to store a list of Python values in a file and access it as a Python
