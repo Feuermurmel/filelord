@@ -3,7 +3,7 @@ import typing
 
 from filemaster.store import Store, namedtuple_encode, pathlib_path_encode
 from filemaster.util import log, format_size, file_digest, iter_regular_files, \
-    is_descendant_of
+    is_descendant_of, relpath
 
 
 """
@@ -84,7 +84,7 @@ class FileCache:
 
                 # Do not log small files.
                 if size >= 1 << 24:
-                    log('Hashing {} ({}) ...', path, format_size(size))
+                    log('Hashing {} ({}) ...', relpath(path), format_size(size))
 
                 hash = file_digest(path, progress_fn=data_read_progress_fn)
                 entry = CachedFile(path, ctime, hash)
