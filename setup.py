@@ -6,5 +6,5 @@ setuptools.setup(
     version='0.1',
     packages=['filemaster'],
     entry_points=dict(
-        console_scripts=['filemaster = filemaster.cli:entry_point']),
+        console_scripts=['fm = filemaster.cli:entry_point']),
     install_requires=[])
