@@ -37,7 +37,7 @@ class FileCache:
         """
 
         ctime_token_path = \
-            self._store_path.with_name(self._store_path.name + 'ctime_token')
+            self._store_path.with_name(self._store_path.name + '_ctime_token')
 
         ctime_token_path.touch()
         ctime = ctime_token_path.stat().st_ctime
