@@ -34,10 +34,16 @@ def test_directory(files, fm):
 
 def test_from_subdirectory(files, fm):
     files['file1'] = 'a'
-    files['dir1'] = ...
+    files['dir1/dir2'] = ...
 
+    # The file is specified using a relative path containing a `..` component.
     fm('set ../file1 ./', cwd='dir1')
     fm.index.check_intended_path('a', 'dir1/file1')
+
+    # The intended path is also specified using relative path containing `..`
+    # components.
+    fm('set ../../file1 ../../', cwd='dir1/dir2')
+    fm.index.check_intended_path('a', 'file1')
 
 
 def test_intended_path_outside_of_root(files, fake_subprocess):

@@ -1,4 +1,5 @@
 import argparse
+import os
 import pathlib
 import sys
 
@@ -272,6 +273,12 @@ def ls_command(update_cache, summary, all, paths):
 
 
 def set_command(update_cache, apply, paths, intended_path):
+    # This path should never be resolved. It should be recoreded in the index
+    # without regards to what's in the file system. But we need to get rid of
+    # any . and .. components.
+    intended_path_base = pathlib.Path(
+        os.path.normpath(str(pathlib.Path.cwd() / intended_path.path)))
+
     with with_repository(update_cache) as repo:
         file_set = repo.create_file_set(paths)
 
@@ -285,9 +292,7 @@ def set_command(update_cache, apply, paths, intended_path):
             if intended_path.trailing_slash:
                 matched_root = matched_root.parent
 
-            absolute_intended_path_base = intended_path.path.resolve()
-
-            return absolute_intended_path_base \
+            return intended_path_base \
                    / matched_file.path.relative_to(matched_root)
 
         set_intended_paths(repo, file_set, intended_path_fn)
