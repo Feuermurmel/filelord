@@ -135,6 +135,15 @@ def is_descendant_of(descendant_path: pathlib.Path, path: pathlib.Path):
         return True
 
 
+def relpath(path):
+    """
+    Version of os.path.relpath() which works on Python < 3.6 and which
+    returns a pathlib.Path instance.
+    """
+
+    return pathlib.Path(os.path.relpath(str(path)))
+
+
 @contextlib.contextmanager
 def with_log_message_fn(log_message_fn: typing.Callable[[str], None]):
     global _log_message_fn

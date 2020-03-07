@@ -152,11 +152,6 @@ def with_repository(update_cache, *, root_dir=None, clear_cache=False):
     root_dir = find_filemaster_root(root_dir)
     filemaster_dir = root_dir / filemaster_dir_name
 
-    if not filemaster_dir.exists():
-        raise UserError('Repository does not exist: {}', filemaster_dir)
-    elif not filemaster_dir.is_dir():
-        raise UserError('Repository is not e directory: {}', filemaster_dir)
-
     cache = FileCache(
         store_path=filemaster_dir / _file_cache_store_name,
         root_path=root_dir,
@@ -222,10 +217,11 @@ def find_filemaster_root(root_dir: pathlib.Path = None):
                 'No {} directory found in the current directory or any of its '
                 'parents.',
                 filemaster_dir_name)
-    else:
-        root_dir = root_dir.resolve()
 
     filemaster_dir = root_dir / filemaster_dir_name
+
+    if not filemaster_dir.exists():
+        raise UserError('Repository does not exist: {}', relpath(filemaster_dir))
 
     files_exist = \
         (filemaster_dir / _file_cache_store_name).is_file() \
@@ -236,7 +232,9 @@ def find_filemaster_root(root_dir: pathlib.Path = None):
             'Not a valid repository: {}',
             os.path.relpath(filemaster_dir))
 
-    return root_dir
+    # Now that we know that the directory exists, we can safely resolve it to
+    # make it absolute and also get rid of any . and .. components.
+    return root_dir.resolve()
 
 
 def export_tsv(repo: Repository, file_set, output_path):
