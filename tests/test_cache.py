@@ -17,9 +17,9 @@ class CacheHarness:
 
     def __init__(self, cache):
         self.cache = cache
-        self.current_ctime = 100
+        self.current_mtime = 100
 
-        # Maps from paths as strings to tuple s of ctime and content as string.
+        # Maps from paths as strings to tuple s of mtime and content as string.
         self.files = {}
 
         # Used to count the number of files opened for reading. Reset to 0
@@ -29,8 +29,8 @@ class CacheHarness:
     def iter_regular_files(self, root, filter_fn):
         return iter(sorted(pathlib.Path(i) for i in self.files))
 
-    def get_current_ctime(self):
-        return self.current_ctime
+    def get_current_mtime(self):
+        return self.current_mtime
 
     def file_digest(self, path, progress_fn):
         _, content = self.files[str(path)]
@@ -45,7 +45,7 @@ class CacheHarness:
             return bytes_digest(content.encode())
 
     def stat_path(self, path):
-        ctime, content = self.files[str(path)]
+        mtime, content = self.files[str(path)]
 
         if content is None:
             size = 0
@@ -53,7 +53,7 @@ class CacheHarness:
             size = len(content.encode())
 
         m = unittest.mock.Mock()
-        m.st_ctime = ctime
+        m.st_mtime = mtime
         m.st_size = size
 
         return m
@@ -88,8 +88,8 @@ def cache_harness_factory(tmp_path, monkeypatch):
                     cache_harness.iter_regular_files)
 
                 m.setattr(
-                    'filemaster.cache.FileCache._get_current_ctime',
-                    cache_harness.get_current_ctime)
+                    'filemaster.cache.FileCache._get_current_mtime',
+                    cache_harness.get_current_mtime)
 
                 m.setattr(
                     'filemaster.cache.file_digest',

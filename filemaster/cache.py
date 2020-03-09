@@ -10,10 +10,10 @@ from filemaster.writelog import with_write_log
 
 """
 Represents an entry in a file cache. The entry stores the file's absolute 
-path, its ctime and its hash. The ctime is used to detect when a file has 
+path, its mtime and its hash. The mtime is used to detect when a file has
 been modified.
 """
-CachedFile = collections.namedtuple('CacheEntry', 'path ctime hash')
+CachedFile = collections.namedtuple('CacheEntry', 'path mtime hash')
 
 _cached_file_encode = namedtuple_encode(CachedFile, path=pathlib_path_encode)
 
@@ -36,20 +36,20 @@ class FileCache:
 
         self._store = Store(path=self._store_path, encode=_cached_file_encode)
 
-    def _get_current_ctime(self):
+    def _get_current_mtime(self):
         """
-        Create a file next to the store file and get its ctime. This is
+        Create a file next to the store file and get its mtime. This is
         necessary so that we also capture the filesystems rounding behavior
         in the returned value.
         """
 
-        ctime_token_path = add_suffix(self._store_path, '_ctime_token')
+        mtime_token_path = add_suffix(self._store_path, '_mtime_token')
 
-        ctime_token_path.touch()
-        ctime = ctime_token_path.stat().st_ctime
-        ctime_token_path.unlink()
+        mtime_token_path.touch()
+        mtime = mtime_token_path.stat().st_mtime
+        mtime_token_path.unlink()
 
-        return ctime
+        return mtime
 
     def clear(self):
         self._store[:] = []
@@ -61,12 +61,12 @@ class FileCache:
         files which do not exist anymore.
         """
 
-        # We can't trust hashes computed for files which do not have a ctime
+        # We can't trust hashes computed for files which do not have a mtime
         # that is smaller than the current time. These files could still be
-        # written to without visibly changing their ctime. If we hash such a
-        # file we store 0 as their ctime, which forces re-computing the hash
+        # written to without visibly changing their mtime. If we hash such a
+        # file we store 0 as their mtime, which forces re-computing the hash
         # next time the tree is scanned.
-        current_ctime = self._get_current_ctime()
+        current_mtime = self._get_current_mtime()
 
         # List of updated entries.
         new_entries = []
@@ -74,29 +74,29 @@ class FileCache:
         # Used to look up cache entries by path while scanning. This
         # includes records from an existing write log. Entries of
         # unchanged paths are copied to new_cache_files.
-        entries_by_path_ctime = {
-            (i.path, i.ctime): i
+        entries_by_path_mtime = {
+            (i.path, i.mtime): i
             for i in list(self._store) + self._write_log.records}
 
         for path in iter_regular_files(self._root_path, self._filter_fn):
             stat = _stat_path(path)
-            ctime = stat.st_ctime
+            mtime = stat.st_mtime
 
-            # Find a cache entry with correct path and ctime.
-            entry = entries_by_path_ctime.get((path, ctime))
+            # Find a cache entry with correct path and mtime.
+            entry = entries_by_path_mtime.get((path, mtime))
 
             # Hash the file and create a new entry, if non was found.
             if entry is None:
-                # Force hashing the file again when the ctime is too recent.
-                if ctime >= current_ctime:
-                    ctime = 0
+                # Force hashing the file again when the mtime is too recent.
+                if mtime >= current_mtime:
+                    mtime = 0
 
                 # Do not log small files.
                 if stat.st_size >= 1 << 24:
                     log('Hashing {} ({}) ...', relpath(path), format_size(stat.st_size))
 
                 hash = file_digest(path, progress_fn=data_read_progress_fn)
-                entry = CachedFile(path, ctime, hash)
+                entry = CachedFile(path, mtime, hash)
 
                 # We're using the write log only to prevent losing the work
                 # of hashing files.
