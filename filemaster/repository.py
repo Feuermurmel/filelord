@@ -3,7 +3,7 @@ import contextlib
 import pathlib
 import typing
 
-from filemaster.cache import FileCache, with_file_cache
+from filemaster.cache import FileCache, with_file_cache, CachedFile
 from filemaster.index import AggregatedFile, FileIndex
 from filemaster.statusline import StatusLine, with_status_line
 from filemaster.tsv import write_tsv
@@ -80,11 +80,17 @@ MatchedFile = collections.namedtuple(
 
 
 class Repository:
-    def __init__(self, root_dir: pathlib.Path, aggregated_files: typing.List[AggregatedFile]):
+    def __init__(self, root_dir: pathlib.Path, aggregated_files: typing.List[AggregatedFile], cache):
         assert root_dir.is_absolute()
 
         self.root_dir = root_dir
         self.aggregated_files = aggregated_files
+
+        self._cache = cache
+
+        # Map from path to `CachedFile` instances, used to generate cache
+        # hints when moving files. Initialized on demand.
+        self._cached_files_by_path = None
 
     def get_matched_files(self, file_set) -> typing.List[MatchedFile]:
         """
@@ -134,6 +140,21 @@ class Repository:
 
         return FileSet(list(iter_resolved_paths()))
 
+    def rename_with_cache_hint(self, source, dest):
+        if self._cached_files_by_path is None:
+            self._cached_files_by_path = {
+                j.path: j
+                for i in self.aggregated_files
+                for j in i.cached_files}
+
+        hint = self._cached_files_by_path[source]._replace(path=dest)
+
+        # Support moving a file multiple times.
+        self._cached_files_by_path[dest] = hint
+
+        self._cache.add_hint(hint)
+        source.rename(dest)
+
 
 @contextlib.contextmanager
 def with_repository(update_cache, *, root_dir=None, clear_cache=False):
@@ -172,7 +193,7 @@ def with_repository(update_cache, *, root_dir=None, clear_cache=False):
             update_cache_with_status(cache)
 
         aggregated_files = index.aggregate_files(cache.get_cached_files())
-        repo = Repository(root_dir, aggregated_files)
+        repo = Repository(root_dir, aggregated_files, cache)
 
         yield repo
 
@@ -415,7 +436,7 @@ def apply_intended_paths(repo, file_set, *, dry_run=False):
             # Can't prevent race conditions. But this should catch logic bugs.
             assert not dest.exists()
 
-            source.rename(dest)
+            repo.rename_with_cache_hint(source, dest)
 
     # Records changes to the file system before performing them so that we
     # can detect conflicts before doing anything.

@@ -110,6 +110,17 @@ class FileCache:
         self._store.save()
         self._write_log.flush()
 
+    def add_hint(self, cached_file):
+        """
+        Add the specified entries to the write log of the cache. These
+        entries will be used on the next update in addition to those already
+        in the cache. Thus, it's not problematic if a change recorded here
+        ultimately doesn't happened. The file system will have been scanned
+        again before these entries will be exported from the cache.
+        """
+
+        self._write_log.append(cached_file)
+
     def get_cached_files(self) -> typing.List[CachedFile]:
         """
         Return the current list of cached files. This only contains files

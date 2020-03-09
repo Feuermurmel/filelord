@@ -176,3 +176,30 @@ def test_write_log_new_cache_instance(cache_harness_factory):
         cache_harness.update()
         assert cache_harness.files_hashed == 1
         assert len(cache_harness.cache.get_cached_files()) == 2
+
+
+def test_moved_file_recorded(cache_harness):
+    cache_harness.files['/a'] = 0, 'a'
+    cache_harness.update()
+
+    # Move a file.
+    del cache_harness.files['/a']
+    cache_harness.files['/b'] = 0, 'a'
+
+    # Add a hint for the new path of the file.
+    entry = cache_harness.cache.get_cached_files()[0]
+    cache_harness.cache.add_hint(entry._replace(path=pathlib.Path('/b')))
+
+    # The file shold not need to be read again because of the hint.
+    cache_harness.update()
+    assert cache_harness.files_hashed == 0
+    assert len(cache_harness.cache.get_cached_files()) == 1
+
+    # Add another hint which is ultimately not used.
+    entry = cache_harness.cache.get_cached_files()[0]
+    cache_harness.cache.add_hint(entry._replace(path=pathlib.Path('/c')))
+
+    # The hint should not be used when updating the cache again.
+    cache_harness.update()
+    assert cache_harness.files_hashed == 0
+    assert len(cache_harness.cache.get_cached_files()) == 1
