@@ -52,10 +52,9 @@ def test_intended_path_outside_root(files, fm):
 
 
 # Not sure if we want to disallow this.
-@pytest.mark.skip
 def test_intended_path_is_root(files, fm):
     files['file1'] = 'a'
 
     # This would result in the intended path being set to the root directory.
-    fm.expect_error('is not below the repository\'s root directory')
+    fm.expect_error('is outside the repository\'s root directory')
     fm('set file1 .')

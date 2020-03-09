@@ -370,6 +370,11 @@ def set_intended_paths(repo, file_set, intended_path_fn):
         if new_intended_path is not None:
             try:
                 new_intended_path = new_intended_path.relative_to(repo.root_dir)
+
+                if new_intended_path == pathlib.Path():
+                    # The intended path would point at the root directory of
+                    # the repository.
+                    raise ValueError
             except ValueError:
                 raise UserError(
                     'Intended path is outside the repository\'s root '
