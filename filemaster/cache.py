@@ -79,6 +79,7 @@ class FileCache:
             for i in list(self._store) + self._write_log.records}
 
         for path in iter_regular_files(self._root_path, self._filter_fn):
+            # TODO: We're stat'ing the file (at least) a second time. iter_regular_files() already had to stat the file.
             stat = _stat_path(path)
             mtime = stat.st_mtime
 

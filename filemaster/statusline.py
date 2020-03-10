@@ -15,7 +15,8 @@ def with_status_line():
 
     status_line = StatusLine.create()
 
-    with with_log_message_fn(status_line.log):
+    # StatusLine.log() also calls format() on the first argument.
+    with with_log_message_fn(lambda m: status_line.log('{}', m)):
         try:
             yield status_line
         finally:
