@@ -1,4 +1,5 @@
 import collections
+import pathlib
 import typing
 
 from filemaster.cache import CachedFile
@@ -22,10 +23,11 @@ Represents an entry in the index.
 IndexEntry = \
     collections.namedtuple('IndexEntry', 'hash intended_path seen_paths')
 
-_index_entry_encode = namedtuple_encode(
-    IndexEntry,
-    intended_path=union_with_none_encode(pathlib_path_encode),
-    seen_paths=list_encode(pathlib_path_encode))
+_index_encode = list_encode(
+    namedtuple_encode(
+        IndexEntry,
+        intended_path=union_with_none_encode(pathlib_path_encode),
+        seen_paths=list_encode(pathlib_path_encode)))
 
 
 """
@@ -50,7 +52,7 @@ class FileIndex:
     """
 
     def __init__(self, *, store_path):
-        self._store = Store(path=store_path, encode=_index_entry_encode)
+        self._store = Store(path=store_path, encode=_index_encode)
 
     def aggregate_files(self, cached_files: typing.List[CachedFile]) -> typing.List[AggregatedFile]:
         """
@@ -60,7 +62,7 @@ class FileIndex:
 
         # Will contain all aggregated files, even for those files that are not
         # yet in the index.
-        files_by_hash = {i.hash: AggregatedFile(i, []) for i in self._store}
+        files_by_hash = {i.hash: AggregatedFile(i, []) for i in self._store.get()}
 
         for i in cached_files:
             index_entry, cached_files = files_by_hash.get(
@@ -82,5 +84,8 @@ class FileIndex:
         Overwrite and save the list of entries stored in the index.
         """
 
-        self._store[:] = index_entries
-        self._store.save()
+        self._store.set(index_entries)
+
+
+def initialize_file_index(path: pathlib.Path):
+    Store(path, _index_encode).set([])

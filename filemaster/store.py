@@ -1,4 +1,3 @@
-import collections
 import json
 import os
 import pathlib
@@ -40,35 +39,46 @@ def namedtuple_encode(_type, **encodes_by_field):
 pathlib_path_encode = Encode(encode_fn=str, decode_fn=pathlib.Path)
 
 
-# TODO: It is certainly a stupid idea that the store itself exports a list interface, but it also creates some problems. E.g. <store-instance> + <some other list> does not work.
-class Store(collections.UserList):
-    """
-    Used to store a list of Python values in a file and access it as a Python
-    sequence.
+_no_value_token = object()
 
-    Each item is individually converted between a Python and a JSON value
-    using `self._encode_item()` and `self._decode_item()`, encoded as
-    JSON and written to a separate line in the file.
+
+class Store:
+    """
+    Used to store a Python value in a file encoded as JSON, which can be
+    atomically updated.
     """
 
     def __init__(self, path: pathlib.Path, encode: Encode):
-        super().__init__()
+        """
+        The file at the specified  path is only opened for reading when the
+        value is read the first time with `get()`.
+
+        :param path:
+            The path where the file containing the encoded value is stored.
+        :param encode:
+            Used to convert between a Python and JSON value when writing to or
+            reading from the file.
+        """
 
         self._path = path
         self._encode = encode
+        self._current_value = _no_value_token
 
-        with self._path.open('r', encoding='utf-8') as file:
-            for line in file:
-                self.append(self._encode.decode(json.loads(line)))
+    def get(self):
+        if self._current_value is _no_value_token:
+            with self._path.open('r', encoding='utf-8') as file:
+                self._current_value = self._encode.decode(json.load(file))
 
-    def save(self):
+        return self._current_value
+
+    def set(self, new_value):
         temp_path = self._path.with_name(self._path.name + '~')
 
         with temp_path.open('w', encoding='utf-8') as file:
-            for i in self:
-                print(json.dumps(self._encode.encode(i)), file=file)
+            json.dump(self._encode.encode(new_value), file)
 
             file.flush()
             os.fsync(file.fileno())
 
         temp_path.rename(self._path)
+        self._current_value = new_value

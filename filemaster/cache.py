@@ -1,8 +1,10 @@
 import collections
 import contextlib
+import pathlib
 import typing
 
-from filemaster.store import Store, namedtuple_encode, pathlib_path_encode
+from filemaster.store import Store, namedtuple_encode, pathlib_path_encode, \
+    list_encode
 from filemaster.util import log, format_size, file_digest, iter_regular_files, \
     is_descendant_of, add_suffix, relpath
 from filemaster.writelog import with_write_log
@@ -16,6 +18,8 @@ been modified.
 CachedFile = collections.namedtuple('CacheEntry', 'path mtime hash')
 
 _cached_file_encode = namedtuple_encode(CachedFile, path=pathlib_path_encode)
+
+_cache_encode = list_encode(_cached_file_encode)
 
 
 # Wrapper for pathlib.Path.stat() which can be patched during tests.
@@ -34,7 +38,7 @@ class FileCache:
         self._filter_fn = filter_fn
         self._write_log = write_log
 
-        self._store = Store(path=self._store_path, encode=_cached_file_encode)
+        self._store = Store(path=self._store_path, encode=_cache_encode)
 
     def _get_current_mtime(self):
         """
@@ -52,8 +56,7 @@ class FileCache:
         return mtime
 
     def clear(self):
-        self._store[:] = []
-        self._store.save()
+        self._store.set([])
 
     def update(self, *, file_checked_progress_fn, data_read_progress_fn):
         """
@@ -76,7 +79,7 @@ class FileCache:
         # unchanged paths are copied to new_cache_files.
         entries_by_path_mtime = {
             (i.path, i.mtime): i
-            for i in list(self._store) + self._write_log.records}
+            for i in self._store.get() + self._write_log.records}
 
         for path in iter_regular_files(self._root_path, self._filter_fn):
             # TODO: We're stat'ing the file (at least) a second time. iter_regular_files() already had to stat the file.
@@ -107,8 +110,7 @@ class FileCache:
             file_checked_progress_fn()
 
         # Save the new list of entries.
-        self._store[:] = new_entries
-        self._store.save()
+        self._store.set(new_entries)
         self._write_log.flush()
 
     def add_hint(self, cached_file):
@@ -130,7 +132,7 @@ class FileCache:
         """
 
         return [
-            i for i in self._store
+            i for i in self._store.get()
             if is_descendant_of(i.path, self._root_path)]
 
 
@@ -140,3 +142,7 @@ def with_file_cache(store_path, root_path, filter_fn):
 
     with with_write_log(log_path, _cached_file_encode) as write_log:
         yield FileCache(store_path, root_path, filter_fn, write_log)
+
+
+def initialize_file_cache(path: pathlib.Path):
+    Store(path, _cache_encode).set([])

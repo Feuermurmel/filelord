@@ -237,13 +237,8 @@ class FMIndex:
     def __init__(self, fm: FM):
         self._fm = fm
 
-        def iter_entries():
-            filelist_path = self._fm.root_dir / '.filemaster' / 'fileindex'
-
-            with filelist_path.open('r', encoding='utf-8') as file:
-                return [json.loads(i) for i in file]
-
-        entries = list(iter_entries())
+        filelist_path = self._fm.root_dir / '.filemaster' / 'fileindex'
+        entries = json.loads(filelist_path.read_text())
 
         # Check that there are not multiple entries for the same hash.
         assert len(gather_duplicates(i['hash'] for i in entries)) == 0

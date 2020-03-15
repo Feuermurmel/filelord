@@ -1,11 +1,10 @@
 import contextlib
-import io
 import pathlib
 import unittest.mock
 
 import pytest
 
-from filemaster.cache import with_file_cache
+from filemaster.cache import with_file_cache, initialize_file_cache
 from filemaster.util import bytes_digest
 
 
@@ -75,7 +74,7 @@ def cache_harness_factory(tmp_path, monkeypatch):
     """
 
     cache_store_path = tmp_path / 'filecache'
-    cache_store_path.touch()
+    initialize_file_cache(cache_store_path)
 
     @contextlib.contextmanager
     def fn():
@@ -128,7 +127,7 @@ def test_simple(cache_harness):
     assert cache_harness.files_hashed == 1
     assert len(cache_harness.cache.get_cached_files()) == 1
 
-    # Add another file. Only that file shold be read.
+    # Add another file. Only that file should be read.
     cache_harness.files['/bar'] = 0, 'hello'
     cache_harness.update()
     assert cache_harness.files_hashed == 1
@@ -149,7 +148,7 @@ def test_write_log(cache_harness):
     assert len(cache_harness.cache.get_cached_files()) == 0
 
     # Remove the file which aborts the operations and update the cache again.
-    # Only a single file shoud still need to be hashed.
+    # Only a single file should still need to be hashed.
     del cache_harness.files['/b']
     cache_harness.update()
     assert cache_harness.files_hashed == 1

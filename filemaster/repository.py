@@ -3,8 +3,8 @@ import contextlib
 import pathlib
 import typing
 
-from filemaster.cache import FileCache, with_file_cache, CachedFile
-from filemaster.index import AggregatedFile, FileIndex
+from filemaster.cache import FileCache, with_file_cache, initialize_file_cache
+from filemaster.index import AggregatedFile, FileIndex, initialize_file_index
 from filemaster.statusline import StatusLine, with_status_line
 from filemaster.tsv import write_tsv
 from filemaster.util import UserError, log, format_size, is_descendant_of, \
@@ -287,8 +287,8 @@ def initialize_repository(root_dir):
 
     # Initialize an empty repository.
     filemaster_dir.mkdir()
-    (filemaster_dir / _file_cache_store_name).touch()
-    (filemaster_dir / _file_index_store_name).touch()
+    initialize_file_cache(filemaster_dir / _file_cache_store_name)
+    initialize_file_index(filemaster_dir / _file_index_store_name)
 
     log('Initialized empty database at {}.', filemaster_dir)
 
