@@ -3,11 +3,11 @@ import contextlib
 import pathlib
 import typing
 
-from filemaster.store import Store, namedtuple_encode, pathlib_path_encode, \
+from filelord.store import Store, namedtuple_encode, pathlib_path_encode, \
     list_encode
-from filemaster.util import log, format_size, file_digest, iter_regular_files, \
+from filelord.util import log, format_size, file_digest, iter_regular_files, \
     is_descendant_of, add_suffix, relpath
-from filemaster.writelog import with_write_log
+from filelord.writelog import with_write_log
 
 
 """

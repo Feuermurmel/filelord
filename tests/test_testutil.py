@@ -1,25 +1,25 @@
 import pytest
 
 
-def test_fm_expect_error(fm):
-    # A successful command after calling fm.expect_error() should raise an
+def test_fl_expect_error(fl):
+    # A successful command after calling fl.expect_error() should raise an
     # assertion.
     with pytest.raises(AssertionError):
-        fm.expect_error('')
-        fm('ls')
+        fl.expect_error('')
+        fl('ls')
 
     # Expecting an error message which is not output should raise an assertion.
     with pytest.raises(AssertionError):
-        fm.expect_error('floop')
-        fm('foo')
+        fl.expect_error('floop')
+        fl('foo')
 
 
-def test_fm_failure_caught(fm):
-    # Running an invalid command without calling fm.expect_error() should
+def test_fl_failure_caught(fl):
+    # Running an invalid command without calling fl.expect_error() should
     # raise an assertion.
     with pytest.raises(AssertionError):
-        fm('foo')
+        fl('foo')
 
     # Expecting a matching error message should not raise an assertion.
-    fm.expect_error('invalid choice')
-    fm('foo')
+    fl.expect_error('invalid choice')
+    fl('foo')

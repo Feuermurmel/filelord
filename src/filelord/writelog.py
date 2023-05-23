@@ -3,8 +3,8 @@ import json
 import os
 import pathlib
 
-from filemaster.store import Encode
-from filemaster.util import bytes_digest
+from filelord.store import Encode
+from filelord.util import bytes_digest
 
 
 @contextlib.contextmanager

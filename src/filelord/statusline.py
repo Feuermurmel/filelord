@@ -3,7 +3,7 @@ import sys
 import time
 import typing
 
-from filemaster.util import with_log_message_fn
+from filelord.util import with_log_message_fn
 
 
 @contextlib.contextmanager

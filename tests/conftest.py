@@ -1,6 +1,6 @@
 import pytest
 
-from testutil import FM, Files, FakeSubprocess
+from testutil import FL, Files, FakeSubprocess
 
 
 @pytest.fixture
@@ -15,15 +15,15 @@ def fake_subprocess(capsys, monkeypatch):
 
 
 @pytest.fixture
-def fm(tmp_path, fake_subprocess):
+def fl(tmp_path, fake_subprocess):
     """
-    Provide an `FM` instance with an already initialized repository.
+    Provide an `FL` instance with an already initialized repository.
     """
 
-    fm = FM(tmp_path, fake_subprocess)
-    fm('init')
+    fl = FL(tmp_path, fake_subprocess)
+    fl('init')
 
-    return fm
+    return fl
 
 
 @pytest.fixture

@@ -4,8 +4,8 @@ import unittest.mock
 
 import pytest
 
-from filemaster.cache import with_file_cache, initialize_file_cache
-from filemaster.util import bytes_digest
+from filelord.cache import with_file_cache, initialize_file_cache
+from filelord.util import bytes_digest
 
 
 class CacheHarness:
@@ -83,19 +83,19 @@ def cache_harness_factory(tmp_path, monkeypatch):
 
             with monkeypatch.context() as m:
                 m.setattr(
-                    'filemaster.cache.iter_regular_files',
+                    'filelord.cache.iter_regular_files',
                     cache_harness.iter_regular_files)
 
                 m.setattr(
-                    'filemaster.cache.FileCache._get_current_mtime',
+                    'filelord.cache.FileCache._get_current_mtime',
                     cache_harness.get_current_mtime)
 
                 m.setattr(
-                    'filemaster.cache.file_digest',
+                    'filelord.cache.file_digest',
                     cache_harness.file_digest)
 
                 m.setattr(
-                    'filemaster.cache._stat_path',
+                    'filelord.cache._stat_path',
                     cache_harness.stat_path)
 
                 yield cache_harness

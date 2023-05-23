@@ -3,15 +3,15 @@ import contextlib
 import pathlib
 import typing
 
-from filemaster.cache import FileCache, with_file_cache, initialize_file_cache
-from filemaster.index import AggregatedFile, FileIndex, initialize_file_index
-from filemaster.statusline import StatusLine, with_status_line
-from filemaster.tsv import write_tsv
-from filemaster.util import UserError, log, format_size, is_descendant_of, \
+from filelord.cache import FileCache, with_file_cache, initialize_file_cache
+from filelord.index import AggregatedFile, FileIndex, initialize_file_index
+from filelord.statusline import StatusLine, with_status_line
+from filelord.tsv import write_tsv
+from filelord.util import UserError, log, format_size, is_descendant_of, \
     relpath
 
 
-filemaster_dir_name = '.filemaster'
+filelord_dir_name = '.filelord'
 _file_cache_store_name = 'filecache'
 _file_index_store_name = 'fileindex'
 
@@ -171,13 +171,13 @@ def with_repository(update_cache, *, root_dir=None, clear_cache=False):
     """
 
     # Uses root_dir, if specified, otherwise searches for a repository.
-    root_dir = find_filemaster_root(root_dir)
-    filemaster_dir = root_dir / filemaster_dir_name
-    cache_store_path = filemaster_dir / _file_cache_store_name
+    root_dir = find_filelord_root(root_dir)
+    filelord_dir = root_dir / filelord_dir_name
+    cache_store_path = filelord_dir / _file_cache_store_name
 
     with with_file_cache(cache_store_path, root_dir, file_filter_fn) as cache:
         index = FileIndex(
-            store_path=filemaster_dir / _file_index_store_name)
+            store_path=filelord_dir / _file_index_store_name)
 
         if clear_cache:
             # Produce different messages when the cache is cleared, depending on
@@ -213,13 +213,13 @@ def update_cache_with_status(cache: FileCache):
             data_read_progress_fn=update_status.data_read)
 
 
-def find_filemaster_root(root_dir: pathlib.Path = None):
+def find_filelord_root(root_dir: pathlib.Path = None):
     """
     Return an absolute, resolved path to the root directory.
 
     If a root directory is specified, it is tested to be a valid root
     directory. If no root directory is specified, the closest parent
-    directory containing a .filemaster directory is used. If no such
+    directory containing a .filelord directory is used. If no such
     directory can be found, a `UserError` is raised.
     """
 
@@ -229,25 +229,25 @@ def find_filemaster_root(root_dir: pathlib.Path = None):
         current_dir = pathlib.Path.cwd()
 
         for root_dir in [current_dir, *current_dir.parents]:
-            if (root_dir / filemaster_dir_name).is_dir():
+            if (root_dir / filelord_dir_name).is_dir():
                 break
         else:
             raise UserError(
                 'No {} directory found in the current directory or any of its '
                 'parents.',
-                filemaster_dir_name)
+                filelord_dir_name)
 
-    filemaster_dir = root_dir / filemaster_dir_name
+    filelord_dir = root_dir / filelord_dir_name
 
-    if not filemaster_dir.exists():
-        raise UserError('Repository does not exist: {}', relpath(filemaster_dir))
+    if not filelord_dir.exists():
+        raise UserError('Repository does not exist: {}', relpath(filelord_dir))
 
     files_exist = \
-        (filemaster_dir / _file_cache_store_name).is_file() \
-        and (filemaster_dir / _file_index_store_name).is_file()
+        (filelord_dir / _file_cache_store_name).is_file() \
+        and (filelord_dir / _file_index_store_name).is_file()
 
     if not files_exist:
-        raise UserError('Not a valid repository: {}', relpath(filemaster_dir))
+        raise UserError('Not a valid repository: {}', relpath(filelord_dir))
 
     # Now that we know that the directory exists, we can safely resolve it to
     # make it absolute and also get rid of any . and .. components.
@@ -278,19 +278,19 @@ def initialize_repository(root_dir):
     elif not root_dir.is_dir():
         raise UserError('Path is not a directory: {}', root_dir)
 
-    filemaster_dir = root_dir / filemaster_dir_name
+    filelord_dir = root_dir / filelord_dir_name
 
-    if filemaster_dir.exists():
+    if filelord_dir.exists():
         raise UserError(
             'Cannot create directory at {} because the path already exists.',
-            filemaster_dir)
+            filelord_dir)
 
     # Initialize an empty repository.
-    filemaster_dir.mkdir()
-    initialize_file_cache(filemaster_dir / _file_cache_store_name)
-    initialize_file_index(filemaster_dir / _file_index_store_name)
+    filelord_dir.mkdir()
+    initialize_file_cache(filelord_dir / _file_cache_store_name)
+    initialize_file_index(filelord_dir / _file_index_store_name)
 
-    log('Initialized empty database at {}.', filemaster_dir)
+    log('Initialized empty database at {}.', filelord_dir)
 
 
 def list_files(repo: Repository, file_set: FileSet, summary_only):

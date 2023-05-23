@@ -2,8 +2,8 @@ import collections
 import pathlib
 import typing
 
-from filemaster.cache import CachedFile
-from filemaster.store import namedtuple_encode, union_with_none_encode, \
+from filelord.cache import CachedFile
+from filelord.store import namedtuple_encode, union_with_none_encode, \
     pathlib_path_encode, list_encode, Store
 
 

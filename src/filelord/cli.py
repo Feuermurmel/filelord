@@ -3,10 +3,10 @@ import os
 import pathlib
 import sys
 
-from filemaster.repository import filemaster_dir_name, with_repository, \
+from filelord.repository import filelord_dir_name, with_repository, \
     list_files, MatchedFile, initialize_repository, set_intended_paths, \
     apply_intended_paths, remove_missing_files
-from filemaster.util import PathWithSlash, log, UserError
+from filelord.util import PathWithSlash, log, UserError
 
 
 def parse_args():
@@ -25,7 +25,7 @@ def parse_args():
     init_parser = subparsers.add_parser(
         'init',
         help='Initialize a {} directory in the current working '
-             'directory.'.format(filemaster_dir_name))
+             'directory.'.format(filelord_dir_name))
 
     init_parser.add_argument(
         'path',
@@ -161,9 +161,9 @@ def parse_args():
     #     '--output',
     #     '-o',
     #     help='Path where the .tsv should be created. Defaults to '
-    #          'filemaster_index.tsv in the current directory.',
+    #          'filelord_index.tsv in the current directory.',
     #     type=pathlib.Path,
-    #     default=pathlib.Path('filemaster_index.tsv'))
+    #     default=pathlib.Path('filelord_index.tsv'))
     #
     # # export_parser.add_argument(
     # #     '--full-paths',
@@ -186,10 +186,10 @@ def parse_args():
     #
     # import_parser.add_argument(
     #     'tsv_file',
-    #     help='File to import. Defaults to filemaster_index.tsv in the current '
+    #     help='File to import. Defaults to filelord_index.tsv in the current '
     #          'directory.',
     #     type=pathlib.Path,
-    #     default=pathlib.Path('filemaster_index.tsv'))
+    #     default=pathlib.Path('filelord_index.tsv'))
     #
     # import_parser.add_argument(
     #     '--apply',

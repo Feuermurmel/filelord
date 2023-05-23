@@ -7,7 +7,7 @@ import subprocess
 import sys
 import typing
 
-import filemaster.cli
+import filelord.cli
 
 
 def is_subsequence_of(subseq, seq):
@@ -104,7 +104,7 @@ class FakeSubprocess:
         return subprocess.CompletedProcess(args, returncode, out, err)
 
 
-class FM:
+class FL:
     def __init__(self, root_dir, fake_subprocess):
         # The root directory of the repository used by this instance when
         # running commands. Can be changed when necessary.
@@ -129,15 +129,15 @@ class FM:
 
     def __call__(self, cmdline, cwd='.'):
         """
-        Run the filemaster command with the specified arguments and in the
+        Run the filelord command with the specified arguments and in the
         specified working directory. The working directory is relative to the
         root of the repository.
         """
 
         result = self._fake_subprocess.run(
-            ['filemaster', *cmdline.split()],
+            ['filelord', *cmdline.split()],
             cwd=str(self.root_dir / cwd),
-            entry_point=filemaster.cli.entry_point)
+            entry_point=filelord.cli.entry_point)
 
         # Write the captured output to stdout so that we see it in the
         # pytest output when a test fails.
@@ -147,7 +147,7 @@ class FM:
         self.output = result.stdout.decode() + result.stderr.decode()
         self.lines = self.output.splitlines()
 
-        # Clear the FMIndex instance returned by self.index.
+        # Clear the FLIndex instance returned by self.index.
         self._cached_index = None
 
         # Make sure the application didn't crash, even when we expected a
@@ -167,7 +167,7 @@ class FM:
     @property
     def index(self):
         if self._cached_index is None:
-            self._cached_index = FMIndex(self)
+            self._cached_index = FLIndex(self)
 
         return self._cached_index
 
@@ -228,16 +228,16 @@ class FM:
                 assert i not in self.output
 
 
-class FMIndex:
+class FLIndex:
     """
-    Implementation for the `index` property of `FM` instances, which allows
+    Implementation for the `index` property of `FL` instances, which allows
     access to the repositories index.
     """
 
-    def __init__(self, fm: FM):
-        self._fm = fm
+    def __init__(self, fl: FL):
+        self._fl = fl
 
-        filelist_path = self._fm.root_dir / '.filemaster' / 'fileindex'
+        filelist_path = self._fl.root_dir / '.filelord' / 'fileindex'
         entries = json.loads(filelist_path.read_text())
 
         # Check that there are not multiple entries for the same hash.

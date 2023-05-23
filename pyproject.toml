@@ -1,5 +1,5 @@
 [project]
-name = "filemaster"
+name = "filelord"
 version = "1.0.0"
 dependencies = []
 
@@ -7,7 +7,7 @@ dependencies = []
 dev = ["pytest"]
 
 [project.scripts]
-fm = "filemaster.cli:entry_point"
+fl = "filelord.cli:entry_point"
 
 [tool.pytest.ini_options]
 testpaths = "tests"
