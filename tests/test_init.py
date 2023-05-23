@@ -1,6 +1,6 @@
 import pytest
 
-from tests.testutil import FM
+from testutil import FM
 
 
 # Overwrite the global `fm` fixture with one which is not automatically

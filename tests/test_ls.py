@@ -1,4 +1,4 @@
-from tests.testutil import is_subsequence_of
+from testutil import is_subsequence_of
 
 
 def test_lists_files(files, fm):

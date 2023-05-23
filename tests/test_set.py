@@ -1,4 +1,4 @@
-from tests.testutil import FM
+from testutil import FM
 
 
 def test_single_files(files, fm):

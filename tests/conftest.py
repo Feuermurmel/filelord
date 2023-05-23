@@ -1,6 +1,6 @@
 import pytest
 
-from tests.testutil import FM, Files, FakeSubprocess
+from testutil import FM, Files, FakeSubprocess
 
 
 @pytest.fixture

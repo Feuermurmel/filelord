@@ -1,0 +1,16 @@
+[project]
+name = "filemaster"
+version = "1.0.0"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+fm = "filemaster.cli:entry_point"
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+
+# Allow log output to be inspected with capsys fixutre.
+addopts = "-p no:logging"
